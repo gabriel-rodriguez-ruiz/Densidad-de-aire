@@ -36,6 +36,17 @@ else:
     deltaMaxTemdoceHoras=5
     deltaMaxHum=100      
     
+class Clase:
+    """Clase de precisión del INTI."""
+    def __init__(self, nombre, deltaMaxTemHora, deltaMaxTemdoceHoras, deltaMaxHum):
+        self.nombre = nombre
+        self.deltaMaxTemHora = deltaMaxTemHora
+        self.deltaMaxTemdoceHoras = deltaMaxTemdoceHoras
+        self.deltaMaxHum = deltaMaxHum
+    def __str__(self):
+        return f"{self.nombre}"
+    def __repr__(self):
+        return f"Clase({self.nombre}, {self.deltaMaxTemHora}, {self.deltaMaxTemdoceHoras}, {self.deltaMaxHum})"
     
 #%% en este bloque agregue la lista tiempo, en la que se define el tiempo en segundos en que se realiza cada medicion
    # usando la funcion timestamp()
