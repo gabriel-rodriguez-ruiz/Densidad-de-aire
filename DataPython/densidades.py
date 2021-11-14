@@ -51,33 +51,41 @@ class Clase:
 #%% en este bloque agregue la lista tiempo, en la que se define el tiempo en segundos en que se realiza cada medicion
    # usando la funcion timestamp()
     
-    
-with open('../DataPython/202109-06.csv') as File:
-    reader = csv.reader(File, delimiter=';')
-    hora=[]
-    temperatura=[]
-    presion=[]
-    humedad=[]
-    densidad=[]
-    fecha=[]
-    tiempo=[]
-    for i,line in enumerate(reader):
-        listahora=line[18].split(':')
-        listafecha=line[17].split('/')
-        tiempo.append(datetime(int(listafecha[2]),int(listafecha[1]),int(listafecha[0]),int(listahora[0]),int(listahora[1]), int(listahora[2])).timestamp())
-        hora.append(line[18].split(':'))
-        fecha.append(line[17].split('/'))
-        temperatura.append(float(line[1]))
-        humedad.append(float(line[15]))
-        presion.append(float(line[16]))
-        densidad.append((0.34848*float(line[16])-0.009*float(line[15])*math.exp(0.061*float(line[1])))/(273.15+float(line[1])))    
+def leer_csv(nombre_archivo):
+    """
+    Lee archivo csv 'nombre_archivo' y devuelve listas con el contenido
+    de: hora, temperatura, presion, humedad, densidad, fecha, tiempo
+    """
+    with open(nombre_archivo) as File:
+        reader = csv.reader(File, delimiter=';')
+        hora=[]
+        temperatura=[]
+        presion=[]
+        humedad=[]
+        densidad=[]
+        fecha=[]
+        tiempo=[]
+        fecha_hora = []
+        for i,line in enumerate(reader):
+            listahora=line[18].split(':')
+            listafecha=line[17].split('/')
+            tiempo.append(datetime(int(listafecha[2]),int(listafecha[1]),int(listafecha[0]),int(listahora[0]),int(listahora[1]), int(listahora[2])).timestamp())
+            hora.append(line[18].split(':'))
+            fecha.append(line[17].split('/'))
+            fecha_hora.append(datetime(*list(map(int,line[17].split("/")[::-1]+line[18].split(":")))))
+            temperatura.append(float(line[1]))
+            humedad.append(float(line[15]))
+            presion.append(float(line[16]))
+            densidad.append((0.34848*float(line[16])-0.009*float(line[15])*math.exp(0.061*float(line[1])))/(273.15+float(line[1])))    
+    return fecha_hora, hora, temperatura, presion, humedad, densidad, tiempo
 
-    #First Term => CIPM 1981/91: 0.34848      CIPM 2007:0.3483740
-    print('la temperatura es: \n',temperatura)
-    print('la presion es: \n', presion)
-    print('la hora es: \n',hora)
-    print('la humedad es: \n', humedad) 
-    print('La densidad es: \n', densidad)
+fecha_hora, hora, temperatura, presion, humedad, densidad, tiempo = leer_csv('../DataPython/202109-06.csv')
+#First Term => CIPM 1981/91: 0.34848      CIPM 2007:0.3483740
+print('la temperatura es: \n',temperatura)
+print('la presion es: \n', presion)
+print('la hora es: \n', fecha_hora)
+print('la humedad es: \n', humedad) 
+print('La densidad es: \n', densidad)
 
 #%% Grafico Densidad
 indMaxHora=densidad.index(max(densidad))
@@ -208,3 +216,45 @@ def grafico(columna):
     plt.ylim(min(columna)-0.1 , max(columna)+0.1 )
     plt.annotate(f'{hora[indMaxHoraTem]}',xy=(indMaxHoraTem,max(columna)+0.05))
     plt.annotate(f'{hora[indMinHoraTem]}',xy=(indMinHoraTem,min(columna)-0.05))
+
+
+#%% Manejo de csv con Pandas    
+import pandas as pd
+
+def mediciones_durante_calibracion(inicio, final, nombre_archivo1, nombre_archivo2):
+    """
+    Devuelve un DataFrame a partir de dos archivos csv con los datos restringidos
+    a las horas de 'inicio' y 'final'.    
+
+    Parameters
+    ----------
+    inicio : datetime.datetime
+        Incio de la calibración.
+    final : datetime.datetime
+        Fin de la calibración.
+    nombre_archivo1 : str
+        Ruta del primer archivo csv.
+    nombre_archivo2 : str
+        Ruta del segundo archivo csv.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+    """
+    fecha_hora1, hora1, temperatura1, presion1, humedad1, densidad1, tiempo1 = leer_csv(nombre_archivo1)
+    columnas = ["Hora", "Temperatura", "Presión", "Humedad", "Densidad", "Tiempo"]
+    df1 = pd.DataFrame(zip(fecha_hora1, temperatura1, presion1, humedad1, densidad1, tiempo1),
+                       columns = columnas)
+    fecha_hora2, hora2, temperatura2, presion2, humedad2, densidad2, tiempo2 = leer_csv(nombre_archivo2)
+    df2 = pd.DataFrame(zip(fecha_hora2, temperatura2, presion2, humedad2, densidad2, tiempo2),
+                       columns = columnas)
+    df = pd.concat([df1, df2], ignore_index = True)      #Concatenamos los DataFrames
+    df.set_index('Hora')
+    df = df[(df["Hora"] >= inicio) & (df["Hora"]<= final)]
+    return df
+    
+nombre_archivo1 = "../DataPython/202109-05.csv"
+nombre_archivo2 = '../DataPython/202109-06.csv'
+inicio = datetime(2021, 9, 5, 8, 0, 0)
+final = datetime(2021, 9, 6, 8, 0, 0)
+df = mediciones_durante_calibracion(inicio, final, nombre_archivo1, nombre_archivo2)
